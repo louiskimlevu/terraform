@@ -90,3 +90,6 @@ vendor
 .bundle
 .ruby-version
 .terraform.lock.hcl
+
+tf-source-service-account.json
+new_user_credentials.csv
