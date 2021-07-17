@@ -19,7 +19,7 @@ provider "aws" {
 
 resource "aws_s3_bucket" "b" {
   bucket = "my-lklv-tf-test-bucket"
-  provider=aws.us-east-1
+  provider=aws.east
   tags = {
     Name        = "My bucket"
     Environment = "Dev"

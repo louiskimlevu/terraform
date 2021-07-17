@@ -30,10 +30,13 @@ Go to https://www.terraform.io/downloads.html
 `sudo apt-get update && sudo apt-get install terraform`
 
 # logs
+
 TF_LOG=TRACE
 
 # Workflow
-tf init > tf validate > tf fmt > tf plan > tf apply > tf destroy -auto-approve
+
+tf init > tf fmt -recursive > tf validate > > tf plan > tf apply > tf output > tf destroy -auto-approve >
+terraform fmt -recursive
 
 ## terraform init
 
@@ -41,16 +44,23 @@ Will download providers plugin in .terraform in the same directory where the com
 It can download multiple providers plugins if there are multiple providers block
 
 # Provider
+
 A plugin that enables Terraform to interface with the API layer of various cloud platforms and environments.
+
 ## Internal registry
+
 You can reference providers from an internal registry in your Terraform code.
+
 ## Public provider registry
+
 By default, Terraform looks for providers in the Terraform providers public registry so you only have to reference the provider in your code via provider block
+
 ## local provider
+
 TYou can have a local provider and reference that provider in your Terraform code in your configuration.
 
-
 # provider and version
+
 If version is not mentionned, latest is used
 
 ```terraform
@@ -75,6 +85,7 @@ resource "aws_instance" "foo" {
   # ...
 }
 ```
+
 ## Auth for AWS
 
 Best practice is to have 1 automation account hosting tf user, other accounts for resource provisioning,
@@ -111,6 +122,7 @@ stored a json data in terraform.tfstate
 stored as json data
 
 # data
+
 - Resource: Provisioning of resources/infra on our platform. Create, Update and delete!
 - Variable: Provides predefined values as variables on our IAC. Used by resource for provisioning.
 - Data Source: Fetch values from our infra/provider and and provides data for our resource to provision infra/resource.
@@ -146,18 +158,19 @@ output "vpc" {
 	value = data.aws_vpc.foo
 }
 ```
+
 # variables
+
 Best practices is to:
 
 - keep var definitions in separate file than other infra name ex: variables.tf
 - Keep var values in separate file named terraform.tfvars, the content of this file can refer other terraform.tfvars ex: ../../terraform.tfvars
 
-## var types
+## basic types
 
 - bool
 - string
 - number
-- list(string,bool,number),set,map,object,tuple
 
 ```terraform
 variable "org_id" {
@@ -167,6 +180,13 @@ variable "org_id" {
 }
 var.org_id
 ```
+
+## complex types
+
+- tuple
+- list 
+- map
+- object
 
 ```terraform
 variable "availability_zone_names" {
@@ -191,7 +211,6 @@ variable "docker_ports" {
   ]
 }
 ```
-
 ## var validation
 
 terraform will not run plan/apply if validation criteria is not true which can save time
@@ -230,25 +249,31 @@ resource "some_resource" "a" {
 ```
 
 ## Var options and precedence
+
 - can be predefined in predefined in tf.vars
 - can be included as part of -var flar option
 - can be pull down from TF Cloud
-OS envs > terraform.tfvars
-ex:
- ```
- variable "replicas" {
-  type = number
-  default = 5
+  OS envs > terraform.tfvars
+  ex:
+
+```
+variable "replicas" {
+ type = number
+ default = 5
 }
 ```
+
 `terraform apply -var replicas=1`
 value of replicas will be 1 and not 5-
 
 # output
+
 Use cases:
+
 - A child module can use outputs to expose a subset of its resource attributes to a parent module.
 - A root module can use outputs to print certain values in the CLI output after running terraform apply.
 - When using remote state, root module outputs can be accessed by other configurations via a terraform_remote_state data source.
+
 ```terraform
 output "instance_ip_addr" {
   description="private IP of the instance"
@@ -305,7 +330,7 @@ resource "aws_instance" "webserver" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.sg.id]
   subnet_id                   = aws_subnet.subnet.id
-  
+
   provisioner "remote-exec" {
     inline = [
       "sudo yum -y install httpd && sudo systemctl start httpd",
@@ -343,10 +368,59 @@ resource "null_resource" "mk" {
 }
 ```
 
+# state
 
-# remote state
-data source terraform_remote_state can be used to retrieve outputs of a state
-## backend remote
+## terraform.tfstate
+
+can be used to retrieve outputs of a state
+Dont interact with tfstate file directly, just use plan/apply/destroy
+Prior to plan/apply, tf refresh the state
+state contains dependencies to build the
+
+terraform destroy, create a terraform.tfstate.backup in case the state file is lost or corrupted to simplify recovery
+
+## terraform state sub commends
+
+`terraform state list`
+`terraform state rm`
+`terraform state show`
+
+```
+louiskim@DESKTOP-NPEV1IB:/mnt/c/Users/lk_le/Coding/terraform/0-API-vendors-auth-best-practices/aws$ terraform state list
+aws_s3_bucket.b
+louiskim@DESKTOP-NPEV1IB:/mnt/c/Users/lk_le/Coding/terraform/0-API-vendors-auth-best-practices/aws$ terraform state show aws_s3_bucket.b
+# aws_s3_bucket.b:
+resource "aws_s3_bucket" "b" {
+    acl                         = "private"
+    arn                         = "arn:aws:s3:::my-lklv-tf-test-bucket"
+    bucket                      = "my-lklv-tf-test-bucket"
+    bucket_domain_name          = "my-lklv-tf-test-bucket.s3.amazonaws.com"
+    bucket_regional_domain_name = "my-lklv-tf-test-bucket.s3.amazonaws.com"
+    force_destroy               = false
+    hosted_zone_id              = "Z3AQBSTGFYJSTF"
+    id                          = "my-lklv-tf-test-bucket"
+    region                      = "us-east-1"
+    request_payer               = "BucketOwner"
+    tags                        = {
+        "Environment" = "Dev"
+        "Name"        = "My bucket"
+    }
+    tags_all                    = {
+        "Environment" = "Dev"
+        "Name"        = "My bucket"
+    }
+
+    versioning {
+        enabled    = false
+        mfa_delete = false
+    }
+}
+```
+
+## data source terraform_remote_state
+
+Pull outputs data from an external state file (remote or local)
+
 ```terraform
 data "terraform_remote_state" "vpc" {
   backend = "remote"
@@ -358,15 +432,81 @@ data "terraform_remote_state" "vpc" {
     }
   }
 }
-
 resource "aws_instance" "foo" {
   # ...
   subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
 }
-
 ```
 
-## local remote
+#### Remote Backend + statelocking
+
+- step 1:
+  main.tf (provider only)
+
+```terraform
+
+provider "aws" {
+  region = "us-east-1"
+}
+```
+
+backend.tf (s3 + dynamo)
+
+```terraform
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "tf-backend-lklv"
+  # Enable versioning so we can see the full revision history of our
+  # state files
+  versioning {
+    enabled = true
+  }
+  # Enable server-side encryption by default
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+}
+
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "terraform-up-and-running-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+}
+```
+
+- step 2: terraform init > plan > apply
+- step 3: Update main.tf to add terraform {backend} block
+  main.tf
+
+```terraform
+provider "aws" {
+  region = "us-east-1"
+}
+
+terraform {
+  backend "s3" {
+    #AWS CLI profile
+    profile="terraform"
+
+    bucket = "tf-backend-lklv"
+    key    = "global/s3/terraform.tfstate"
+    region = "us-east-1"
+    # Replace this with your DynamoDB table name!
+    dynamodb_table = "terraform-up-and-running-locks"
+    encrypt        = true
+  }
+}
+```
+
+### local remote + terraform_remote_state example
+
 ```terraform
 data "terraform_remote_state" "vpc" {
   backend = "local"
@@ -375,10 +515,72 @@ data "terraform_remote_state" "vpc" {
     path = "..."
   }
 }
-
-# Terraform >= 0.12
 resource "aws_instance" "foo" {
   # ...
   subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
 }
 ```
+
+# modules
+
+reusable packages
+every tf configuration has at least one module -> root which consists of tf files inside the directory
+Access modules
+
+- public/private registry
+- local registry
+
+```terraform
+module "servers" {
+source = "../modules/vpc"
+#source = "terraform-aws-modules/vpc/aws"
+version="0.0.5"
+region=var.region
+}
+```
+
+# allowed parameters in modules
+
+- count
+- for_each
+- providers
+- depends_on
+
+# access modules output
+
+module.name-of-module.name-of-output
+
+```terraform
+resource "aws_instance" vm{
+  ...
+  subnet_id=module.my-vpc-module.subnet-id
+}
+```
+
+## Built in functions
+
+- join()
+
+```terraform
+var "project-name"{
+  type=string
+  default="prod"
+}
+resource "aws_vpc"{
+  cidr_block="10.0.0.0/16"
+  tags={
+    Name=join("-",["terraform,var.project-name])
+  }
+}
+```
+
+- file()
+```terraform
+credentials = file("tf-source-service-account.json")
+```
+- timestamp
+- max
+- flatten
+- contains(["acloud","guru",1,2,3],"guru)
+# terraform console
+

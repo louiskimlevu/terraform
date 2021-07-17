@@ -15,6 +15,10 @@ provider "aws" {
 terraform {
   backend "s3" {
     # Replace this with your bucket name!
+
+    #AWS CLI profile
+    profile="terraform"
+    
     bucket = "tf-backend-lklv"
     key    = "global/s3/terraform.tfstate"
     region = "us-east-1"
