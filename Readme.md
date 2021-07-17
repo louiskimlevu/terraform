@@ -1,4 +1,5 @@
 KEEP THIS REPO PRIVATE
+
 # benefits of IAC
 
 Infrastructure resources like GCP Folders/Projects, Kubernetes cluster, GCS buckets can be codified and deployed via Terraform. By using an IaC tool, we get multiple benefits:
@@ -28,45 +29,28 @@ Go to https://www.terraform.io/downloads.html
 `sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"`
 `sudo apt-get update && sudo apt-get install terraform`
 
-# Auth for AWS
-
-Best practice is to have 1 automation account hosting tf user, other accounts for resource provisioning,
-
-- Create IAM user with programatic access only in automation account is granted STS-Write/AssumeRole customer-managed-policy for X-account ARN roles (has many as the number of resource/target accounts)
-- Create these X-account roles are created in resource/target accounts with trusted identity beeing Automation account
-
-- Option1 : AWS_PROFILE env var using AK/SAK
-  `AWS_PROFILE=default && printenv | grep AWS_PROFILE && aws configure list-profiles`
-  `aws configure --profile terraform `
-  -> set ak,sak
-  `AWS_PROFILE=terraform && printenv | grep AWS_PROFILE && aws configure list`
-  For listing windows envs -> set, ex: `set | findstr "AWS_PROFILE"`
-
-# Auth for GCP
-
-Set envvars before running tf init/plan/apply
-Best practice is to have 1 project for automation and other projects for resource provisioning:
-
-- Project automation: create source-sa + key + download key in this directory + Enable IAM Service Account Credentials API
-- Project resource: create impersonated-sa + grant source-sa Token Creator Role
-
-- Option1 credentials field in provider block refers fo file(sa-key.json)
-  path to sa key in provider block -> credentials = file("tf-source-service-account.json")
-- Option2 env GOOGLE_CLOUD_KEYFILE_JSON
-  ` export GOOGLE_CLOUD_KEYFILE_JSON=tf-source-service-account.json`
-  ` export GOOGLE_APPLICATION_CREDENTIALS=tf-source-service-account.json`
-
 # logs
-
 TF_LOG=TRACE
 
-# terraform init
+# Workflow
+tf init > tf validate > tf fmt > tf plan > tf apply > tf destroy -auto-approve
+
+## terraform init
 
 Will download providers plugin in .terraform in the same directory where the command is executed.
 It can download multiple providers plugins if there are multiple providers block
 
-# provider and version
+# Provider
+A plugin that enables Terraform to interface with the API layer of various cloud platforms and environments.
+## Internal registry
+You can reference providers from an internal registry in your Terraform code.
+## Public provider registry
+By default, Terraform looks for providers in the Terraform providers public registry so you only have to reference the provider in your code via provider block
+## local provider
+TYou can have a local provider and reference that provider in your Terraform code in your configuration.
 
+
+# provider and version
 If version is not mentionned, latest is used
 
 ```terraform
@@ -76,7 +60,7 @@ provider "aws"{
 }
 ```
 
-# provider alias
+## provider alias
 
 Alias is used to create resources with different providers (ex: )
 Another use case is service accounts impersonation for tf GCP best practices
@@ -91,17 +75,89 @@ resource "aws_instance" "foo" {
   # ...
 }
 ```
+## Auth for AWS
+
+Best practice is to have 1 automation account hosting tf user, other accounts for resource provisioning,
+
+- Create IAM user with programatic access only in automation account is granted STS-Write/AssumeRole customer-managed-policy for X-account ARN roles (has many as the number of resource/target accounts)
+- Create these X-account roles are created in resource/target accounts with trusted identity beeing Automation account
+
+- Option1 : AWS_PROFILE env var using AK/SAK
+  `AWS_PROFILE=default && printenv | grep AWS_PROFILE && aws configure list-profiles`
+  `aws configure --profile terraform `
+  -> set ak,sak
+  `AWS_PROFILE=terraform && printenv | grep AWS_PROFILE && aws configure list`
+  For listing windows envs -> set, ex: `set | findstr "AWS_PROFILE"`
+
+## Auth for GCP
+
+Set envvars before running tf init/plan/apply
+Best practice is to have 1 project for automation and other projects for resource provisioning:
+
+- Project automation: create source-sa + key + download key in this directory + Enable IAM Service Account Credentials API
+- Project resource: create impersonated-sa + grant source-sa Token Creator Role
+
+- Option1 credentials field in provider block refers fo file(sa-key.json)
+  path to sa key in provider block -> credentials = file("tf-source-service-account.json")
+- Option2 env GOOGLE_CLOUD_KEYFILE_JSON
+  ` export GOOGLE_CLOUD_KEYFILE_JSON=tf-source-service-account.json`
+  ` export GOOGLE_APPLICATION_CREDENTIALS=tf-source-service-account.json`
 
 # state
 
 help tf keeps track/map resources defined as code and resources deployed
 if no remote backend{} is configurd, the state file resides in the same directory inside .terraform
-stored a json data in terraform.state
+stored a json data in terraform.tfstate
+stored as json data
 
+# data
+- Resource: Provisioning of resources/infra on our platform. Create, Update and delete!
+- Variable: Provides predefined values as variables on our IAC. Used by resource for provisioning.
+- Data Source: Fetch values from our infra/provider and and provides data for our resource to provision infra/resource.
+
+```terraform
+# resource "aws_instance" "web" {
+# 	ami           = data.aws_ami.ubuntu.id
+# 	instance_type = "t2.micro"
+# }
+
+data "aws_ami" "ubuntu" {
+	most_recent = true
+	owners      = ["self"]
+
+	filter {
+		name = "name"
+		values = ["tuts-ubuntu"]
+	}
+}
+
+data "aws_vpc" "foo" {
+	default = true
+}
+
+data "aws_vpc" "main" {
+	filter {
+		name  = "tag:Name"
+		values = ["PROD-VPC"]
+	}
+}
+
+output "vpc" {
+	value = data.aws_vpc.foo
+}
+```
 # variables
 Best practices is to:
+
 - keep var definitions in separate file than other infra name ex: variables.tf
 - Keep var values in separate file named terraform.tfvars, the content of this file can refer other terraform.tfvars ex: ../../terraform.tfvars
+
+## var types
+
+- bool
+- string
+- number
+- list(string,bool,number),set,map,object,tuple
 
 ```terraform
 variable "org_id" {
@@ -111,12 +167,14 @@ variable "org_id" {
 }
 var.org_id
 ```
+
 ```terraform
 variable "availability_zone_names" {
   type    = list(string)
   default = ["us-west-1a"]
 }
 ```
+
 ```terraform
 variable "docker_ports" {
   type = list(object({
@@ -133,9 +191,11 @@ variable "docker_ports" {
   ]
 }
 ```
-# var validation
+
+## var validation
 
 terraform will not run plan/apply if validation criteria is not true which can save time
+
 ```terraform
 variable "image_id" {
   type        = string
@@ -148,10 +208,12 @@ variable "image_id" {
 }
 ```
 
-# var sensitive
+## var sensitive
+
 Setting a variable as sensitive prevents Terraform from showing its value in the plan or apply output, when you use that variable elsewhere in your configuration.
 
 Terraform will still record sensitive values in the state, and so anyone who can access the state data will have access to the sensitive values in cleartext
+
 ```terraform
 variable "user_information" {
   type = object({
@@ -164,5 +226,159 @@ variable "user_information" {
 resource "some_resource" "a" {
   name    = var.user_information.name
   address = var.user_information.address
+}
+```
+
+## Var options and precedence
+- can be predefined in predefined in tf.vars
+- can be included as part of -var flar option
+- can be pull down from TF Cloud
+OS envs > terraform.tfvars
+ex:
+ ```
+ variable "replicas" {
+  type = number
+  default = 5
+}
+```
+`terraform apply -var replicas=1`
+value of replicas will be 1 and not 5-
+
+# output
+Use cases:
+- A child module can use outputs to expose a subset of its resource attributes to a parent module.
+- A root module can use outputs to print certain values in the CLI output after running terraform apply.
+- When using remote state, root module outputs can be accessed by other configurations via a terraform_remote_state data source.
+```terraform
+output "instance_ip_addr" {
+  description="private IP of the instance"
+ value = aws_instance.server.private_ip
+}
+```
+
+# provisioners
+
+used for config management like ansible.
+execute scripts on a local or remote machine as part of resource creation or destruction
+If the command within a provisioner returns a non-zero code, the resource is marked as tainted. A tainted resource will be planned for destruction and recreation upon the next terraform apply
+Multiple provisioners can be defined a resource
+
+## local-exec
+
+The local-exec provisioner requires no other configuration, but most other provisioners must connect to the remote system using SSH or WinRM.
+local-exec provisioner helps run a script on instance where we are running our terraform code, not on the resource we are creating. For example, if we want to write EC2 instance IP address to a file, then we can use below local-exec provisioner with our EC2 resource and save it locally in a file.
+
+```terraform
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    command = "echo The server's IP address is ${self.private_ip}"
+  }
+}
+```
+
+## remote-exec (better to use user data/bootstrap scripts)
+
+remote-exec provisioner helps invoke a script on the remote resource once it is created.
+We can provide:
+
+- a list of command strings which are executed in the order they are provided
+- scripts with a local path which is copied remotely and then executed on the remote resource. file provisioner is used to copy files or directories to a remote resource. We can’t provide any arguments to script in remote-exec provisioner. We can achieve this by copying script from file provisioner and then execute a script using a list of commands.
+
+AWS Example:
+
+1. Update security group with port 22 and port 80 open from 0.0.0.0/0. Port 22 is used to SSH by terraform remote-exec provisioner to setup Nginx and Port 80 is used by us when making HTTP call from our browser.
+2.
+
+```terraform
+
+resource "aws_key_pair" "webserver-key" {
+  key_name   = "pub-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+resource "aws_instance" "webserver" {
+  ami                         = data.aws_ssm_parameter.webserver-ami.value
+  instance_type               = "t3.micro"
+  key_name                    = aws_key_pair.webserver-key.pub-key
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.sg.id]
+  subnet_id                   = aws_subnet.subnet.id
+  
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum -y install httpd && sudo systemctl start httpd",
+      "echo '<h1><center>My Test Website With Help From Terraform Provisioner</center></h1>' > index.html",
+      "sudo mv index.html /var/www/html/"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file("~/.ssh/id_rsa")
+      host        = self.public_ip
+    }
+  }
+  tags = {
+    Name = "webserver"
+  }
+}
+```
+
+## Destroy-time provisioner
+
+Destroy provisioners are run before the resource is destroyed. If they fail, Terraform will error and rerun the provisioners again on the next terraform apply. Due to this behavior, care should be taken for destroy provisioners to be safe to run multiple times.
+
+```terraform
+resource "null_resource" "mk" {
+  provisioner "local-exec" {
+    command = "echo '0' > status.txt"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "echo '1' > status.txt"
+  }
+}
+}
+```
+
+
+# remote state
+data source terraform_remote_state can be used to retrieve outputs of a state
+## backend remote
+```terraform
+data "terraform_remote_state" "vpc" {
+  backend = "remote"
+
+  config = {
+    organization = "hashicorp"
+    workspaces = {
+      name = "vpc-prod"
+    }
+  }
+}
+
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
+}
+
+```
+
+## local remote
+```terraform
+data "terraform_remote_state" "vpc" {
+  backend = "local"
+
+  config = {
+    path = "..."
+  }
+}
+
+# Terraform >= 0.12
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
 }
 ```
