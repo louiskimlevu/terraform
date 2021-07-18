@@ -186,6 +186,12 @@ var.org_id
 
 - list = a sequence of values identified by consecutive whole numbers starting with zero.
 - map = schema = { foo = "bar", bar = "baz" }
+```terraform
+tomap({
+  a = "b"
+  c = "d"
+})
+```
 - set = a collection of unique values that do not have any secondary identifiers or ordering.
 
 ## Structural types
@@ -613,21 +619,25 @@ credentials = file("tf-source-service-account.json")
 # terraform console
 
 # Dynamic blocks
+Think security group ingress/egress rules.
+
+A dynamic block acts like a for expression, but produces nested blocks instead of a complex typed value.
+
+Dynamic blocks dynamically construct repeatable nested blocks using a special dynamic block type, which is supported inside resource, data, provider, and provisioner blocks:
 
 # Operators
 
-!, - (multiplication by -1)
-\*, /, %
-+, - (subtraction)
-
-> , >=, <, <=
-> ==, !=
-> &&
-> ||
+- !, - (multiplication by -1)
+- *, /, %
+- +, - (subtraction)
+- $,$ >=,    >,  <, <=
+- ==, !=
+- && ||
 
 # Conditions
 
 condition ? true_val : false_val
+
 var.a != "" ? var.a : "default-a"
 
 # for expression
@@ -635,5 +645,7 @@ var.a != "" ? var.a : "default-a"
 The examples use [ and ], which produces a tuple. If you use { and } instead, the result is an object and you must provide two result expressions that are separated by the => symbol:
 
 [for s in var.list : upper(s)]
+
 [for k, v in var.map : length(k) + length(v)]
+
 {for s in var.list : s => upper(s)}
