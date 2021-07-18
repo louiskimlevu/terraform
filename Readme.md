@@ -171,6 +171,7 @@ Best practices is to:
 - bool
 - string
 - number
+- any : determined at runtime
 
 ```terraform
 variable "org_id" {
@@ -181,12 +182,26 @@ variable "org_id" {
 var.org_id
 ```
 
-## complex types
+## collection types
 
-- tuple
-- list 
-- map
-- object
+- list = a sequence of values identified by consecutive whole numbers starting with zero.
+- map = schema = { foo = "bar", bar = "baz" }
+- set = a collection of unique values that do not have any secondary identifiers or ordering.
+
+## Structural types
+
+- object = a collection of named attributes that each have their own type. schema:{ <KEY> = <TYPE>, <KEY> = <TYPE>, ... }
+  ex: object({ name=string, age=number })
+  ex:
+
+```{
+ name = "John"
+ age  = 52
+}
+```
+
+- tuple = a sequence of elements identified by consecutive whole numbers starting with zero, where each element has its own type. schema: [<TYPE>, <TYPE>, ...]
+  ex: tuple([string, number, bool])
 
 ```terraform
 variable "availability_zone_names" {
@@ -211,6 +226,16 @@ variable "docker_ports" {
   ]
 }
 ```
+
+## locals
+
+```terraform
+locals {
+  service_name = "forum"
+  owner        = "Community Team"
+}
+```
+
 ## var validation
 
 terraform will not run plan/apply if validation criteria is not true which can save time
@@ -575,12 +600,40 @@ resource "aws_vpc"{
 ```
 
 - file()
+
 ```terraform
 credentials = file("tf-source-service-account.json")
 ```
+
 - timestamp
 - max
 - flatten
 - contains(["acloud","guru",1,2,3],"guru)
+
 # terraform console
 
+# Dynamic blocks
+
+# Operators
+
+!, - (multiplication by -1)
+\*, /, %
++, - (subtraction)
+
+> , >=, <, <=
+> ==, !=
+> &&
+> ||
+
+# Conditions
+
+condition ? true_val : false_val
+var.a != "" ? var.a : "default-a"
+
+# for expression
+
+The examples use [ and ], which produces a tuple. If you use { and } instead, the result is an object and you must provide two result expressions that are separated by the => symbol:
+
+[for s in var.list : upper(s)]
+[for k, v in var.map : length(k) + length(v)]
+{for s in var.list : s => upper(s)}
