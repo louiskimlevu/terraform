@@ -38,6 +38,7 @@ TF_LOG=TRACE
 tf init > tf fmt -recursive > tf validate > > tf plan > tf apply > tf output > tf destroy -auto-approve >
 terraform fmt -recursive
 
+We can target a specific resource with terraform destroy -target aws_instance.myec2instance
 ## terraform init
 
 Will download providers plugin in .terraform in the same directory where the command is executed.
