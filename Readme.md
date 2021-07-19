@@ -110,8 +110,8 @@ Best practice is to have 1 project for automation and other projects for resourc
 - Option1 credentials field in provider block refers fo file(sa-key.json)
   path to sa key in provider block -> credentials = file("tf-source-service-account.json")
 - Option2 env GOOGLE_CLOUD_KEYFILE_JSON
-  -` export GOOGLE_CLOUD_KEYFILE_JSON=tf-source-service-account.json`
-  -` export GOOGLE_APPLICATION_CREDENTIALS=tf-source-service-account.json`
+  - ` export GOOGLE_CLOUD_KEYFILE_JSON=tf-source-service-account.json`
+  - ` export GOOGLE_APPLICATION_CREDENTIALS=tf-source-service-account.json`
 
 # state
 
