@@ -94,10 +94,10 @@ Best practice is to have 1 automation account hosting tf user, other accounts fo
 - Create these X-account roles are created in resource/target accounts with trusted identity beeing Automation account
 
 - Option1 :export AWS_PROFILE env var using AK/SAK
-  ** `export AWS_PROFILE=default && printenv | grep AWS_PROFILE && aws configure list-profiles`
-  ** `aws configure --profile terraform ` -> set ak,sak
-  ** `export AWS_PROFILE=terraform && printenv | grep AWS_PROFILE && aws configure list`
-  ** For listing windows envs -> set, ex: `set | findstr "AWS_PROFILE"`
+  - `export AWS_PROFILE=default && printenv | grep AWS_PROFILE && aws configure list-profiles`
+  - `aws configure --profile terraform ` -> set ak,sak
+  - `export AWS_PROFILE=terraform && printenv | grep AWS_PROFILE && aws configure list`
+  - For listing windows envs -> set, ex: `set | findstr "AWS_PROFILE"`
 
 ## Auth for GCP
 
@@ -110,8 +110,8 @@ Best practice is to have 1 project for automation and other projects for resourc
 - Option1 credentials field in provider block refers fo file(sa-key.json)
   path to sa key in provider block -> credentials = file("tf-source-service-account.json")
 - Option2 env GOOGLE_CLOUD_KEYFILE_JSON
-  ` export GOOGLE_CLOUD_KEYFILE_JSON=tf-source-service-account.json`
-  ` export GOOGLE_APPLICATION_CREDENTIALS=tf-source-service-account.json`
+  -` export GOOGLE_CLOUD_KEYFILE_JSON=tf-source-service-account.json`
+  -` export GOOGLE_APPLICATION_CREDENTIALS=tf-source-service-account.json`
 
 # state
 
