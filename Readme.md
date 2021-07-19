@@ -114,7 +114,7 @@ Best practice is to have 1 project for automation and other projects for resourc
   - ` export GOOGLE_CLOUD_KEYFILE_JSON=tf-source-service-account.json`
   - ` export GOOGLE_APPLICATION_CREDENTIALS=tf-source-service-account.json`
 
-# state
+# state (terraform refresh)
 
 help tf keeps track/map resources defined as code and resources deployed
 if no remote backend{} is configurd, the state file resides in the same directory inside .terraform
@@ -122,6 +122,7 @@ stored a json data in terraform.tfstate
 stored as json data
 
 State is refreshed everytime we run pla, apply, destroy
+
 # data
 
 - Resource: Provisioning of resources/infra on our platform. Create, Update and delete!
