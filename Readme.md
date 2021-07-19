@@ -127,6 +127,24 @@ stored as json data
 - Variable: Provides predefined values as variables on our IAC. Used by resource for provisioning.
 - Data Source: Fetch values from our infra/provider and and provides data for our resource to provision infra/resource.
 
+## example data +ssm for ami_id
+
+```terraform
+data "aws_ssm_parameter" "ami_id" {
+  name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+}
+
+resource "aws_instance" "my-instance" {
+  ami             = data.aws_ssm_parameter.ami_id.value
+  subnet_id       = module.vpc.public_subnets[0]
+  instance_type   = "t3.micro"
+  security_groups = [aws_security_group.my-sg.id]
+  user_data       = fileexists("script.sh") ? file("script.sh") : null
+}
+```
+
+## example data + aws_ami ++ aws_vpc
+
 ```terraform
 # resource "aws_instance" "web" {
 # 	ami           = data.aws_ami.ubuntu.id
@@ -182,19 +200,22 @@ variable "org_id" {
 var.org_id
 ```
 
-## collection types
+## collection types (list, map)
+A collection type allows multiple values of one other type to be grouped together as a single value.
 
 - list = a sequence of values identified by consecutive whole numbers starting with zero.
 - map = schema = { foo = "bar", bar = "baz" }
+
 ```terraform
 tomap({
   a = "b"
   c = "d"
 })
 ```
+
 - set = a collection of unique values that do not have any secondary identifiers or ordering.
 
-## Structural types
+## Structural types (object, tuple)
 
 - object = a collection of named attributes that each have their own type. schema:{ <KEY> = <TYPE>, <KEY> = <TYPE>, ... }
   ex: object({ name=string, age=number })
@@ -588,7 +609,7 @@ resource "aws_instance" vm{
 }
 ```
 
-## Built in functions
+## Built-in functions
 
 - join()
 
@@ -601,6 +622,7 @@ resource "aws_vpc"{
   cidr_block="10.0.0.0/16"
   tags={
     Name=join("-",["terraform,var.project-name])
+    #output will be terraform-prod
   }
 }
 ```
@@ -609,6 +631,15 @@ resource "aws_vpc"{
 
 ```terraform
 credentials = file("tf-source-service-account.json")
+
+resource "aws_instance" "my-instance" {
+  ami             = data.aws_ssm_parameter.ami_id.value
+  subnet_id       = module.vpc.public_subnets[0]
+  instance_type   = "t3.micro"
+  security_groups = [aws_security_group.my-sg.id]
+  user_data       = fileexists("script.sh") ? file("script.sh") : null
+}
+
 ```
 
 - timestamp
@@ -618,19 +649,60 @@ credentials = file("tf-source-service-account.json")
 
 # terraform console
 
-# Dynamic blocks
-Think security group ingress/egress rules.
+# Dynamic blocks var, for_each, content
 
 A dynamic block acts like a for expression, but produces nested blocks instead of a complex typed value.
 
 Dynamic blocks dynamically construct repeatable nested blocks using a special dynamic block type, which is supported inside resource, data, provider, and provisioner blocks:
 
+ex: security group ingress/egress rules.
+
+```terraform
+variable "web_ingress"{
+    type=map(object({
+        port=number
+        protocol=string
+        cidr_blocks=list(string)
+    }))
+
+    default={
+        "80"={
+            port =90
+            protocol ="tcp"
+            cidr_blocks= ["0.0.0.0/0"]
+        }
+         "443"={
+            port =443
+            protocol ="tcp"
+            cidr_blocks= ["0.0.0.0/0"]
+        }
+    }
+}
+
+resource "aws_security_group" "allow_tls" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+  vpc_id      = aws_vpc.main.id
+
+  dynamic "ingress"{
+    for_each= var.web_ingress
+    content{
+        description="TLS from VPC"
+        from_port=ingress.value.port
+        to_port=ingress.value.port
+        protocol=ingress.value.protocol
+        cidr_blocks=ingress.value.cidr_blocks
+    }
+    }
+}
+```
+
 # Operators
 
 - !, - (multiplication by -1)
-- *, /, %
+- \*, /, %
 - +, - (subtraction)
-- $,$ >=,    >,  <, <=
+- $,$ >=, >, <, <=
 - ==, !=
 - && ||
 
@@ -639,6 +711,15 @@ Dynamic blocks dynamically construct repeatable nested blocks using a special dy
 condition ? true_val : false_val
 
 var.a != "" ? var.a : "default-a"
+```terraform
+resource "aws_instance" "my-instance" {
+  ami             = data.aws_ssm_parameter.ami_id.value
+  subnet_id       = module.vpc.public_subnets[0]
+  instance_type   = "t3.micro"
+  security_groups = [aws_security_group.my-sg.id]
+  user_data       = fileexists("script.sh") ? file("script.sh") : null
+}
+```
 
 # for expression
 
