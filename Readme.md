@@ -94,11 +94,10 @@ Best practice is to have 1 automation account hosting tf user, other accounts fo
 - Create these X-account roles are created in resource/target accounts with trusted identity beeing Automation account
 
 - Option1 :export AWS_PROFILE env var using AK/SAK
-  `export AWS_PROFILE=default && printenv | grep AWS_PROFILE && aws configure list-profiles`
-  `aws configure --profile terraform `
-  -> set ak,sak
-  `export AWS_PROFILE=terraform && printenv | grep AWS_PROFILE && aws configure list`
-  For listing windows envs -> set, ex: `set | findstr "AWS_PROFILE"`
+  ** `export AWS_PROFILE=default && printenv | grep AWS_PROFILE && aws configure list-profiles`
+  ** `aws configure --profile terraform ` -> set ak,sak
+  ** `export AWS_PROFILE=terraform && printenv | grep AWS_PROFILE && aws configure list`
+  ** For listing windows envs -> set, ex: `set | findstr "AWS_PROFILE"`
 
 ## Auth for GCP
 
