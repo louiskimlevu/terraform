@@ -93,11 +93,11 @@ Best practice is to have 1 automation account hosting tf user, other accounts fo
 - Create IAM user with programatic access only in automation account is granted STS-Write/AssumeRole customer-managed-policy for X-account ARN roles (has many as the number of resource/target accounts)
 - Create these X-account roles are created in resource/target accounts with trusted identity beeing Automation account
 
-- Option1 : AWS_PROFILE env var using AK/SAK
-  `AWS_PROFILE=default && printenv | grep AWS_PROFILE && aws configure list-profiles`
+- Option1 :export AWS_PROFILE env var using AK/SAK
+  `export AWS_PROFILE=default && printenv | grep AWS_PROFILE && aws configure list-profiles`
   `aws configure --profile terraform `
   -> set ak,sak
-  `AWS_PROFILE=terraform && printenv | grep AWS_PROFILE && aws configure list`
+  `export AWS_PROFILE=terraform && printenv | grep AWS_PROFILE && aws configure list`
   For listing windows envs -> set, ex: `set | findstr "AWS_PROFILE"`
 
 ## Auth for GCP
@@ -201,6 +201,7 @@ var.org_id
 ```
 
 ## collection types (list, map)
+
 A collection type allows multiple values of one other type to be grouped together as a single value.
 
 - list = a sequence of values identified by consecutive whole numbers starting with zero.
@@ -711,6 +712,7 @@ resource "aws_security_group" "allow_tls" {
 condition ? true_val : false_val
 
 var.a != "" ? var.a : "default-a"
+
 ```terraform
 resource "aws_instance" "my-instance" {
   ami             = data.aws_ssm_parameter.ami_id.value
