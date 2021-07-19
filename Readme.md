@@ -121,6 +121,7 @@ if no remote backend{} is configurd, the state file resides in the same director
 stored a json data in terraform.tfstate
 stored as json data
 
+State is refreshed everytime we run pla, apply, destroy
 # data
 
 - Resource: Provisioning of resources/infra on our platform. Create, Update and delete!
